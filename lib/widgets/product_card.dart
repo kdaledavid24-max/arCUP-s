@@ -4,7 +4,6 @@ import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../theme/app_theme.dart';
 import '../screens/product_details_screen.dart';
-import 'zoomable_image_dialog.dart';
 
 /// Product Card matching the luxury dark aesthetic with ice-blue image container and white + button.
 class ProductCard extends StatelessWidget {
@@ -19,10 +18,18 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductDetailsScreen(product: product),
+        Navigator.of(context).push(
+          PageRouteBuilder(
+            opaque: false,
+            barrierColor: Colors.black.withValues(alpha: 0.75),
+            barrierDismissible: true,
+            pageBuilder: (context, animation, secondaryAnimation) => ProductDetailsScreen(product: product),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
           ),
         );
       },
@@ -43,51 +50,26 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Image with Signature Soft Ice-Blue Backdrop & Quick Zoom Button
+            // Top Image with Clean Presentation
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-              child: Stack(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: AppTheme.imageBackdrop,
-                    child: AspectRatio(
-                      aspectRatio: 1.12,
-                      child: Image.asset(
-                        product.image,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Center(
-                          child: Icon(
-                            Icons.coffee_rounded,
-                            size: 44,
-                            color: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
+              child: Container(
+                width: double.infinity,
+                color: AppTheme.imageBackdrop,
+                child: AspectRatio(
+                  aspectRatio: 1.12,
+                  child: Image.asset(
+                    product.image,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Center(
+                      child: Icon(
+                        Icons.coffee_rounded,
+                        size: 44,
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ),
-                  // Quick Zoom Button
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: InkWell(
-                      onTap: () => ZoomableImageDialog.show(context, product),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.zoom_in_rounded,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
 

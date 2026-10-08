@@ -39,6 +39,8 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(
             content: Text('Welcome back, ${auth.currentUser?.name}!'),
             backgroundColor: AppTheme.successGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
         if (auth.isAdmin) {
@@ -51,15 +53,99 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(
             content: Text(auth.errorMessage ?? 'Login failed. Please check credentials.'),
             backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
     }
   }
 
-  void _quickFill(String email, String password) {
-    _emailController.text = email;
-    _passwordController.text = password;
+  void _quickFill(String email, String password, String roleName) {
+    setState(() {
+      _emailController.text = email;
+      _passwordController.text = password;
+    });
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: AppTheme.goldAccent, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Auto-filled $roleName Demo credentials!',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 2),
+        backgroundColor: const Color(0xFF1B2A3D),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: AppTheme.goldAccent, width: 0.8),
+        ),
+      ),
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: AppTheme.cardBorder),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_reset_rounded, color: AppTheme.goldAccent, size: 24),
+            SizedBox(width: 10),
+            Text(
+              'Forgot Password?',
+              style: TextStyle(
+                color: AppTheme.textWhite,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'For this demo ordering system, you can use the default test credentials below:',
+              style: TextStyle(color: AppTheme.textMuted, fontSize: 13, height: 1.4),
+            ),
+            SizedBox(height: 12),
+            Text('• Admin: admin@foodordering.com (PW: admin123)',
+                style: TextStyle(color: AppTheme.textWhite, fontSize: 13, fontWeight: FontWeight.w500)),
+            SizedBox(height: 6),
+            Text('• Customer: customer@foodordering.com (PW: customer123)',
+                style: TextStyle(color: AppTheme.textWhite, fontSize: 13, fontWeight: FontWeight.w500)),
+            SizedBox(height: 14),
+            Text(
+              'To register a personalized customer account, tap "Register here" on the sign-in screen.',
+              style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Got It',
+              style: TextStyle(color: AppTheme.goldAccent, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -71,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             child: Form(
               key: _formKey,
               child: Column(
@@ -89,8 +175,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         border: Border.all(color: AppTheme.goldAccent, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.goldAccent.withValues(alpha: 0.2),
-                            blurRadius: 16,
+                            color: AppTheme.goldAccent.withValues(alpha: 0.25),
+                            blurRadius: 18,
                             spreadRadius: 2,
                           ),
                         ],
@@ -99,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Image.asset(
                           'assets/images/logo.png',
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (_, _, _) => const Icon(
                             Icons.restaurant_rounded,
                             color: AppTheme.goldAccent,
                             size: 44,
@@ -108,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
                   const Text(
                     'Food Ordering',
                     textAlign: TextAlign.center,
@@ -130,15 +216,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Email Field
+                  // Email Field (Tighter padding & compact professional feel)
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     style: const TextStyle(color: AppTheme.textWhite),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email Address',
-                      prefixIcon: Icon(Icons.email_outlined, color: AppTheme.goldAccent),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.goldAccent, size: 20),
                       hintText: 'name@example.com',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppTheme.cardBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppTheme.goldAccent, width: 1.5),
+                      ),
                     ),
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Enter email';
@@ -155,13 +251,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: const TextStyle(color: AppTheme.textWhite),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.goldAccent),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.goldAccent, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                           color: AppTheme.textMuted,
+                          size: 20,
                         ),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppTheme.cardBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppTheme.goldAccent, width: 1.5),
                       ),
                     ),
                     validator: (v) {
@@ -169,16 +276,41 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 24),
 
-                  // Sign In Button
+                  // Forgot Password? Link
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 4),
+                      child: TextButton(
+                        onPressed: _showForgotPasswordDialog,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          minimumSize: const Size(50, 30),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'Forgot Password?',
+                          style: TextStyle(
+                            color: AppTheme.goldAccent,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Sign In Button (Smooth rounded pill matching inputs)
                   ElevatedButton(
                     onPressed: auth.isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.goldAccent,
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 2,
                     ),
                     child: auth.isLoading
                         ? const SizedBox(
@@ -191,26 +323,36 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1),
                           ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  // Guest / Browse Option
+                  // Continue as Guest (Crisp white text + subtle border so it clearly pops)
                   OutlinedButton(
                     onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
                     style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.textWhite,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppTheme.cardBorder),
+                      side: const BorderSide(color: Color(0xFF2E4057), width: 1.2),
+                      backgroundColor: const Color(0xFF0F1A2C),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: const Text('Continue as Guest'),
+                    child: const Text(
+                      'Continue as Guest',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 26),
 
-                  // Quick Demo Accounts Box
+                  // Quick Demo Accounts Box (Subtle background shade & clear demo reminder)
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardSurface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.cardBorder),
+                      color: const Color(0xFF0C1524),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF22354E), width: 1),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,33 +366,60 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: TextStyle(
                                 color: AppTheme.goldAccent,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 13.5,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'admin123 / customer123 are for demo testing only (not for production).',
+                          style: TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 11.5,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: () => _quickFill('admin@foodordering.com', 'admin123'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  side: BorderSide(color: AppTheme.goldAccent.withValues(alpha: 0.5)),
+                                onPressed: () => _quickFill(
+                                  'admin@foodordering.com',
+                                  'admin123',
+                                  'Admin',
                                 ),
-                                child: const Text('Fill Admin', style: TextStyle(fontSize: 12)),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  foregroundColor: AppTheme.goldAccent,
+                                  side: BorderSide(color: AppTheme.goldAccent.withValues(alpha: 0.6)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                child: const Text(
+                                  'Auto-fill Admin',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: () => _quickFill('customer@foodordering.com', 'customer123'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  side: const BorderSide(color: AppTheme.cardBorder),
+                                onPressed: () => _quickFill(
+                                  'customer@foodordering.com',
+                                  'customer123',
+                                  'Customer',
                                 ),
-                                child: const Text('Fill Customer', style: TextStyle(fontSize: 12)),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  foregroundColor: AppTheme.textWhite,
+                                  side: const BorderSide(color: Color(0xFF2E4057)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                child: const Text(
+                                  'Auto-fill Customer',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
                               ),
                             ),
                           ],
@@ -258,15 +427,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // Register Link
+                  // Register Link (Bold & bright entry point for new users)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
                         "Don't have an account? ",
-                        style: TextStyle(color: AppTheme.textMuted),
+                        style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
                       ),
                       GestureDetector(
                         onTap: () {
@@ -279,7 +448,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Register here',
                           style: TextStyle(
                             color: AppTheme.goldAccent,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppTheme.goldAccent,
                           ),
                         ),
                       ),

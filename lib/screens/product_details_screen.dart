@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
+import '../data/product_data.dart';
 import '../providers/cart_provider.dart';
 import '../theme/app_theme.dart';
-import '../widgets/zoomable_image_dialog.dart';
 
-/// Screen displaying detailed product information with interactive pinch/scroll zoom
-/// and dedicated Zoom In / Zoom Out controls matching the luxury dark aesthetic.
+/// Product details modal matching the modern luxury drink menu design (Image 2).
+/// Displays a clean studio beverage photograph, breadcrumbs, centered title and description,
+/// "You might also like" recommendations, and sticky bottom bar with quantity stepper,
+/// Buy Now, and Add To Cart buttons.
 class ProductDetailsScreen extends StatefulWidget {
   final Product product;
 
@@ -17,13 +19,20 @@ class ProductDetailsScreen extends StatefulWidget {
 }
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
+  late Product _currentProduct;
   int _quantity = 1;
   final TransformationController _zoomController = TransformationController();
   double _currentScale = 1.0;
 
+  final List<Product> _history = [];
+  int _historyIndex = 0;
+
   @override
   void initState() {
     super.initState();
+    _currentProduct = widget.product;
+    _history.add(widget.product);
+    _historyIndex = 0;
     _zoomController.addListener(_onScaleChanged);
   }
 
@@ -57,35 +66,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
-  void _zoomIn() {
-    final newScale = (_currentScale + 0.4).clamp(1.0, 4.0);
-    _setScale(newScale);
-  }
-
-  void _zoomOut() {
-    final newScale = (_currentScale - 0.4).clamp(1.0, 4.0);
-    _setScale(newScale);
-  }
-
-  void _resetZoom() {
-    _setScale(1.0);
-  }
-
-  void _setScale(double scale) {
-    setState(() {
-      _zoomController.value = Matrix4.diagonal3Values(scale, scale, 1.0);
-      _currentScale = scale;
-    });
-  }
-
-  void _toggleDoubleTapZoom() {
-    if (_currentScale > 1.2) {
-      _resetZoom();
-    } else {
-      _setScale(2.2);
-    }
-  }
-
   IconData _getCategoryIcon(String category) {
     if (category.contains('Coffee')) return Icons.coffee_rounded;
     if (category.contains('Frappe')) return Icons.icecream_rounded;
@@ -94,393 +74,655 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     return Icons.restaurant_rounded;
   }
 
+  void _toggleDoubleTapZoom() {
+    setState(() {
+      if (_currentScale > 1.2) {
+        _zoomController.value = Matrix4.identity();
+        _currentScale = 1.0;
+      } else {
+        _zoomController.value = Matrix4.diagonal3Values(2.0, 2.0, 1.0);
+        _currentScale = 2.0;
+      }
+    });
+  }
+
+  List<Product> get _categoryProducts => ProductData.products
+      .where((p) => p.category == _currentProduct.category)
+      .toList();
+
+  int get _categoryIndex {
+    final list = _categoryProducts;
+    return list.indexWhere((p) => p.id == _currentProduct.id);
+  }
+
+  bool get _canGoBack {
+    if (_historyIndex > 0) return true;
+    if (_categoryIndex > 0) return true;
+    return Navigator.of(context).canPop();
+  }
+
+  bool get _canGoForward {
+    if (_historyIndex < _history.length - 1) return true;
+    final catList = _categoryProducts;
+    final idx = _categoryIndex;
+    return idx >= 0 && idx < catList.length - 1;
+  }
+
+  void _goBack() {
+    if (!_canGoBack) return;
+    if (_historyIndex > 0) {
+      setState(() {
+        _historyIndex--;
+        _currentProduct = _history[_historyIndex];
+        _quantity = 1;
+        _zoomController.value = Matrix4.identity();
+        _currentScale = 1.0;
+      });
+      return;
+    }
+    final catList = _categoryProducts;
+    final idx = _categoryIndex;
+    if (idx > 0) {
+      _selectProduct(catList[idx - 1]);
+      return;
+    }
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _goForward() {
+    if (!_canGoForward) return;
+    if (_historyIndex < _history.length - 1) {
+      setState(() {
+        _historyIndex++;
+        _currentProduct = _history[_historyIndex];
+        _quantity = 1;
+        _zoomController.value = Matrix4.identity();
+        _currentScale = 1.0;
+      });
+      return;
+    }
+    final catList = _categoryProducts;
+    final idx = _categoryIndex;
+    if (idx >= 0 && idx < catList.length - 1) {
+      _selectProduct(catList[idx + 1]);
+    }
+  }
+
+  void _selectProduct(Product newProduct) {
+    if (newProduct.id == _currentProduct.id) return;
+    setState(() {
+      if (_historyIndex < _history.length - 1) {
+        _history.removeRange(_historyIndex + 1, _history.length);
+      }
+      _history.add(newProduct);
+      _historyIndex = _history.length - 1;
+      _currentProduct = newProduct;
+      _quantity = 1;
+      _zoomController.value = Matrix4.identity();
+      _currentScale = 1.0;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final double totalPrice = widget.product.price * _quantity;
-    final cart = Provider.of<CartProvider>(context, listen: false);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 520;
+
+    // Category-specific recommendations for "You might also like"
+    // Rules:
+    // - Pasta -> ONLY Pasta
+    // - Salad -> ONLY Salad
+    // - Drinks (Coffee & Espresso / Frappe) -> ONLY Drinks
+    final currentCat = _currentProduct.category;
+    final bool isDrinkCategory =
+        currentCat.contains('Coffee') || currentCat.contains('Frappe');
+
+    final recommendations = ProductData.products.where((p) {
+      if (p.id == _currentProduct.id) return false;
+      if (currentCat == 'Pasta') {
+        return p.category == 'Pasta';
+      }
+      if (currentCat == 'Salad') {
+        return p.category == 'Salad';
+      }
+      if (isDrinkCategory) {
+        return p.category.contains('Coffee') || p.category.contains('Frappe');
+      }
+      return p.category == currentCat;
+    }).toList();
+
+    if (isDrinkCategory) {
+      // Prioritize same drink sub-category first (e.g. coffee with coffee, frappe with frappe)
+      recommendations.sort((a, b) {
+        final aSame = a.category == currentCat ? 0 : 1;
+        final bSame = b.category == currentCat ? 0 : 1;
+        return aSame.compareTo(bSame);
+      });
+    }
 
     return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
-      appBar: AppBar(
-        backgroundColor: AppTheme.darkBackground,
-        title: const Text(
-          'Product Details',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.0,
-            color: AppTheme.textWhite,
-          ),
-        ),
-        actions: [
-          Consumer<CartProvider>(
-            builder: (context, cart, child) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.shopping_bag_outlined, color: AppTheme.textWhite),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/cart');
-                    },
-                  ),
-                  if (cart.totalItemCount > 0)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${cart.totalItemCount}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Hero Interactive Zoomable Container
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.imageBackdrop,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
+      backgroundColor: Colors.black.withValues(alpha: isMobile ? 1.0 : 0.88),
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).pop(),
+        child: Center(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {}, // Prevent taps inside the card from closing
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 460),
+              margin: isMobile
+                  ? EdgeInsets.zero
+                  : const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(24),
+                border: isMobile
+                    ? null
+                    : Border.all(color: const Color(0xFF262626), width: 1),
+                boxShadow: isMobile
+                    ? null
+                    : [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
+                          color: Colors.black.withValues(alpha: 0.65),
+                          blurRadius: 36,
+                          offset: const Offset(0, 12),
                         ),
                       ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      children: [
-                        // Interactive Zoom Area
-                        GestureDetector(
-                          onDoubleTap: _toggleDoubleTapZoom,
-                          child: SizedBox(
-                            height: 320,
-                            width: double.infinity,
-                            child: InteractiveViewer(
-                              transformationController: _zoomController,
-                              minScale: 1.0,
-                              maxScale: 4.5,
-                              clipBehavior: Clip.none,
-                              child: Center(
-                                child: Image.asset(
-                                  widget.product.image,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) => Center(
-                                    child: Icon(
-                                      _getCategoryIcon(widget.product.category),
-                                      size: 64,
-                                      color: Colors.white.withValues(alpha: 0.8),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Top Category Pill Badge
-                        Positioned(
-                          top: 14,
-                          left: 14,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  _getCategoryIcon(widget.product.category),
-                                  size: 14,
-                                  color: AppTheme.lightCaramel,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  widget.product.category,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // Top-Right Fullscreen Zoom Button
-                        Positioned(
-                          top: 14,
-                          right: 14,
-                          child: InkWell(
-                            onTap: () => ZoomableImageDialog.show(context, widget.product),
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.7),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.fullscreen_rounded,
-                                size: 20,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Bottom Floating Zoom Control Pill (Zoom In, Zoom Out, Reset, Indicator)
-                        Positioned(
-                          bottom: 12,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF141312).withValues(alpha: 0.85),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: AppTheme.cardBorder),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.remove_circle_outline, size: 20),
-                                    color: Colors.white,
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                    tooltip: 'Zoom Out',
-                                    onPressed: _zoomOut,
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                                    child: Text(
-                                      '${(_currentScale * 100).toInt()}%',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.lightCaramel,
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.add_circle_outline, size: 20),
-                                    color: Colors.white,
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                    tooltip: 'Zoom In',
-                                    onPressed: _zoomIn,
-                                  ),
-                                  if (_currentScale > 1.05) ...[
-                                    const SizedBox(width: 4),
-                                    IconButton(
-                                      icon: const Icon(Icons.refresh_rounded, size: 18),
-                                      color: AppTheme.caramelAccent,
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                                      tooltip: 'Reset Zoom',
-                                      onPressed: _resetZoom,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Pinch-to-zoom helper tip
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      'Tip: Pinch or double-tap image to zoom in & out',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.textMuted,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Product Details Card
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardSurface,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: AppTheme.cardBorder),
-                      ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  // Scrollable Body Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          // Hero Drink Photo Container with Floating Back & Close Circles
+                          Stack(
                             children: [
-                              Expanded(
-                                child: Text(
-                                  widget.product.name,
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.textWhite,
-                                    letterSpacing: 0.3,
+                              // Studio Minimalist Light Gray/Blue Backdrop
+                              GestureDetector(
+                                onDoubleTap: _toggleDoubleTapZoom,
+                                child: Container(
+                                  width: double.infinity,
+                                  height: 330,
+                                  color: const Color(0xFFE2E8F0),
+                                  child: InteractiveViewer(
+                                    transformationController: _zoomController,
+                                    minScale: 1.0,
+                                    maxScale: 3.5,
+                                    child: Center(
+                                      child: Image.asset(
+                                        _currentProduct.image,
+                                        fit: BoxFit.contain,
+                                        width: double.infinity,
+                                        height: 330,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            Center(
+                                          child: Icon(
+                                            _getCategoryIcon(_currentProduct.category),
+                                            size: 72,
+                                            color: Colors.black38,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                '₱${widget.product.price.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppTheme.lightCaramel,
+
+                              // Top-Left Navigation Arrows (Left = Back, Right = Forward)
+                              Positioned(
+                                top: 16,
+                                left: 16,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Left Arrow Button (Go back to previous screen)
+                                    InkWell(
+                                      onTap: _canGoBack ? _goBack : null,
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: _canGoBack
+                                              ? Colors.white
+                                              : Colors.white.withValues(alpha: 0.35),
+                                          shape: BoxShape.circle,
+                                          boxShadow: _canGoBack
+                                              ? [
+                                                  BoxShadow(
+                                                    color: Colors.black.withValues(alpha: 0.25),
+                                                    blurRadius: 6,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ]
+                                              : null,
+                                        ),
+                                        child: Icon(
+                                          Icons.arrow_back_rounded,
+                                          size: 20,
+                                          color: _canGoBack ? Colors.black : Colors.black26,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+
+                                    // Right Arrow Button (Go forward to next screen)
+                                    InkWell(
+                                      onTap: _canGoForward ? _goForward : null,
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: _canGoForward
+                                              ? Colors.white
+                                              : Colors.white.withValues(alpha: 0.35),
+                                          shape: BoxShape.circle,
+                                          boxShadow: _canGoForward
+                                              ? [
+                                                  BoxShadow(
+                                                    color: Colors.black.withValues(alpha: 0.25),
+                                                    blurRadius: 6,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ]
+                                              : null,
+                                        ),
+                                        child: Icon(
+                                          Icons.arrow_forward_rounded,
+                                          size: 20,
+                                          color: _canGoForward ? Colors.black : Colors.black26,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Top-Right Floating Circle (Close)
+                              Positioned(
+                                top: 16,
+                                right: 16,
+                                child: InkWell(
+                                  onTap: () => Navigator.of(context).pop(),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.25),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.close_rounded,
+                                      size: 20,
+                                      color: Colors.black,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
 
-                          const Text(
-                            'DESCRIPTION',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.2,
-                              color: AppTheme.caramelAccent,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            widget.product.description,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppTheme.textMuted,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Perks Row
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF141312),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.cardBorder),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          // Breadcrumbs: Home / Menu / Category / Name
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                            child: Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.coffee, color: AppTheme.caramelAccent, size: 18),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Freshly Brewed',
-                                      style: TextStyle(fontSize: 11.5, color: AppTheme.textWhite, fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
+                                const Text(
+                                  'Home',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
-                                Row(
-                                  children: [
-                                    Icon(Icons.timer_outlined, color: AppTheme.caramelAccent, size: 18),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      '15-20 Min Prep',
-                                      style: TextStyle(fontSize: 11.5, color: AppTheme.textWhite, fontWeight: FontWeight.w600),
+                                const Text(
+                                  '  /  ',
+                                  style: TextStyle(
+                                    color: Colors.white30,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const Text(
+                                  'Menu',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                                const Text(
+                                  '  /  ',
+                                  style: TextStyle(
+                                    color: Colors.white30,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  _currentProduct.category,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text(
+                                  '  /  ',
+                                  style: TextStyle(
+                                    color: Colors.white30,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    _currentProduct.name,
+                                    style: const TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 12.5,
                                     ),
-                                  ],
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 22),
 
-                          // Quantity Selector
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Quantity',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textWhite,
+                          // Product Name (Bold, Large, Centered)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                            child: Center(
+                              child: Text(
+                                _currentProduct.name,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.2,
                                 ),
                               ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF141312),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppTheme.cardBorder),
+                            ),
+                          ),
+
+                          // Product Description (Muted, Centered)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 6, 24, 18),
+                            child: Center(
+                              child: Text(
+                                _currentProduct.description,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  color: Colors.white70,
+                                  height: 1.45,
                                 ),
+                              ),
+                            ),
+                          ),
+
+                          // Subtle Divider Line
+                          const Divider(
+                            color: Color(0xFF262626),
+                            height: 1,
+                            thickness: 1,
+                            indent: 20,
+                            endIndent: 20,
+                          ),
+
+                          // "You might also like" Section
+                          // "You might also like" Section (Filtered strictly to matching category)
+                          if (recommendations.isNotEmpty) ...[
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
+                              child: Text(
+                                'You might also like',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ),
+
+                            // Horizontal Recommendation Carousel
+                            SizedBox(
+                              height: 104,
+                              child: ListView.separated(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                scrollDirection: Axis.horizontal,
+                                itemCount: recommendations.length,
+                                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                                itemBuilder: (context, index) {
+                                  final item = recommendations[index];
+                                  return InkWell(
+                                    onTap: () => _selectProduct(item),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      width: 82,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDDE3EA),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: const Color(0xFF262626),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      clipBehavior: Clip.antiAlias,
+                                      child: Image.asset(
+                                        item.image,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            Center(
+                                          child: Icon(
+                                            _getCategoryIcon(item.category),
+                                            color: Colors.black54,
+                                            size: 32,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Sticky Bottom Bar
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF141414),
+                      border: Border(
+                        top: BorderSide(color: Color(0xFF262626), width: 1),
+                      ),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Row 1: Standard & Price on left, Quantity Stepper Pill on right
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Standard',
+                                    style: TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '₱${_currentProduct.price.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Quantity Stepper Pill (White pill with black minus / count / plus)
+                              Container(
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
                                 child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.remove, size: 16),
-                                      onPressed: _decrement,
+                                      icon: const Icon(Icons.remove,
+                                          size: 18, color: Colors.black),
                                       splashRadius: 18,
-                                      color: Colors.white,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(
+                                          minWidth: 32, minHeight: 32),
+                                      onPressed: _decrement,
                                     ),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10),
                                       child: Text(
                                         '$_quantity',
                                         style: const TextStyle(
-                                          fontSize: 16,
+                                          color: Colors.black,
+                                          fontSize: 15,
                                           fontWeight: FontWeight.bold,
-                                          color: AppTheme.textWhite,
                                         ),
                                       ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.add, size: 16),
-                                      onPressed: _increment,
+                                      icon: const Icon(Icons.add,
+                                          size: 18, color: Colors.black),
                                       splashRadius: 18,
-                                      color: Colors.white,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(
+                                          minWidth: 32, minHeight: 32),
+                                      onPressed: _increment,
                                     ),
                                   ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // Row 2: Buy Now (Outlined) & Add To Cart (Solid White)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      final cart = Provider.of<CartProvider>(context,
+                                          listen: false);
+                                      cart.addItem(_currentProduct, quantity: _quantity);
+                                      Navigator.pushNamed(context, '/checkout');
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      side: const BorderSide(
+                                          color: Colors.white, width: 1.5),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Buy Now',
+                                      style: TextStyle(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      final cart = Provider.of<CartProvider>(context,
+                                          listen: false);
+                                      cart.addItem(_currentProduct, quantity: _quantity);
+                                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Added $_quantity x ${_currentProduct.name} to cart!',
+                                            style: const TextStyle(color: Colors.white),
+                                          ),
+                                          action: SnackBarAction(
+                                            label: 'View Cart',
+                                            textColor: AppTheme.goldAccent,
+                                            onPressed: () {
+                                              Navigator.pushNamed(context, '/cart');
+                                            },
+                                          ),
+                                          behavior: SnackBarBehavior.floating,
+                                          backgroundColor: const Color(0xFF1E1E1E),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                            side: const BorderSide(
+                                                color: Color(0xFF333333)),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.black,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Add To Cart',
+                                      style: TextStyle(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -489,106 +731,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
-
-          // Bottom Action Bar
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppTheme.cardSurface,
-              border: const Border(
-                top: BorderSide(color: AppTheme.cardBorder, width: 1),
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-              child: Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Total Price',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textMuted,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '₱${totalPrice.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: AppTheme.textWhite,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        cart.addItem(widget.product, quantity: _quantity);
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Added $_quantity x ${widget.product.name} to cart!',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            action: SnackBarAction(
-                              label: 'View Cart',
-                              textColor: AppTheme.lightCaramel,
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/cart');
-                              },
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: const Color(0xFF252320),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              side: const BorderSide(color: AppTheme.cardBorder),
-                            ),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_shopping_cart_rounded, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Add to Cart',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/order_model.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import 'auth/register_screen.dart';
 import 'order_details_screen.dart';
 
 /// Screen displayed immediately following a successfully confirmed order.
@@ -214,7 +217,68 @@ class OrderConfirmationScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
+
+              // Guest Account Creation Prompt
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) {
+                  if (auth.isAuthenticated) return const SizedBox.shrink();
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0C1524),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.goldAccent.withValues(alpha: 0.4)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.person_add_alt_1_rounded, color: AppTheme.goldAccent, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Want to save your details? Create an account',
+                                style: TextStyle(
+                                  color: AppTheme.textWhite,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Save delivery addresses, track real-time orders, and enjoy faster checkouts on your next visit.',
+                          style: TextStyle(color: AppTheme.textMuted, fontSize: 12, height: 1.35),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppTheme.goldAccent),
+                              foregroundColor: AppTheme.goldAccent,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Create an Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
 
               // Action Buttons
               ElevatedButton.icon(
