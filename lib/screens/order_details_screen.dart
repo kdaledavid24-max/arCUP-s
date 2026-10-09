@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/order_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/status_tracker.dart';
+import '../../widgets/app_image.dart';
 
 class CustomerOrderDetailsScreen extends StatelessWidget {
   final int orderId;
@@ -103,7 +104,7 @@ class CustomerOrderDetailsScreen extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: item.image != null
-                                    ? Image.asset(item.image!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.fastfood))
+                                    ? AppImage(imagePath: item.image!, fit: BoxFit.cover)
                                     : const Icon(Icons.fastfood),
                               ),
                             ),

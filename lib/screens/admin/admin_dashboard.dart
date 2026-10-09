@@ -249,7 +249,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: orderProv.allOrders.take(5).length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final order = orderProv.allOrders[index];
                     return Container(
@@ -258,9 +258,11 @@ class AdminDashboardScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppTheme.cardBorder),
                       ),
-                      child: ListTile(
-                        onTap: () => Navigator.push(
-                          context,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          onTap: () => Navigator.push(
+                            context,
                           MaterialPageRoute(
                             builder: (_) => AdminOrderDetailsScreen(orderId: order.id),
                           ),
@@ -299,7 +301,8 @@ class AdminDashboardScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                    );
+                    ),
+                  );
                   },
                 ),
             ],

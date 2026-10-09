@@ -182,7 +182,7 @@ class CartScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   physics: const BouncingScrollPhysics(),
                   itemCount: cart.items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = cart.items[index];
                     return CartItemCard(item: item);

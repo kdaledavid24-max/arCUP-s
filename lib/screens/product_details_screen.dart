@@ -4,6 +4,7 @@ import '../models/product.dart';
 import '../data/product_data.dart';
 import '../providers/cart_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_image.dart';
 
 /// Product details modal matching the modern luxury drink menu design (Image 2).
 /// Displays a clean studio beverage photograph, breadcrumbs, centered title and description,
@@ -257,13 +258,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                     minScale: 1.0,
                                     maxScale: 3.5,
                                     child: Center(
-                                      child: Image.asset(
-                                        _currentProduct.image,
+                                      child: AppImage(
+                                        imagePath: _currentProduct.image,
                                         fit: BoxFit.contain,
                                         width: double.infinity,
                                         height: 330,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            Center(
+                                        placeholder: Center(
                                           child: Icon(
                                             _getCategoryIcon(_currentProduct.category),
                                             size: 72,
@@ -460,6 +460,37 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             ),
                           ),
 
+                          if (_currentProduct.isSpecial)
+                            Center(
+                              child: Container(
+                                margin: const EdgeInsets.only(top: 4, bottom: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.goldAccent.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppTheme.goldAccent, width: 1),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.stars_rounded, size: 14, color: AppTheme.goldAccent),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      _currentProduct.specialNote?.isNotEmpty == true
+                                          ? _currentProduct.specialNote!
+                                          : 'SPECIAL DAY EXCLUSIVE',
+                                      style: const TextStyle(
+                                        color: AppTheme.goldAccent,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.6,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
                           // Product Description (Muted, Centered)
                           Padding(
                             padding: const EdgeInsets.fromLTRB(24, 6, 24, 18),
@@ -525,17 +556,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                         ),
                                       ),
                                       clipBehavior: Clip.antiAlias,
-                                      child: Image.asset(
-                                        item.image,
+                                      child: AppImage(
+                                        imagePath: item.image,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            Center(
-                                          child: Icon(
-                                            _getCategoryIcon(item.category),
-                                            color: Colors.black54,
-                                            size: 32,
-                                          ),
-                                        ),
                                       ),
                                     ),
                                   );

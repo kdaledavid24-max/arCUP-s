@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/product_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_image.dart';
 import 'add_edit_product_screen.dart';
 
 class ManageProductsScreen extends StatefulWidget {
@@ -39,10 +40,15 @@ class _ManageProductsScreenState extends State<ManageProductsScreen> {
         foregroundColor: Colors.black,
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add Product', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AddEditProductScreen()),
-        ),
+        onPressed: () async {
+          final res = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddEditProductScreen()),
+          );
+          if (res == true && context.mounted) {
+            context.read<ProductProvider>().loadProducts();
+          }
+        },
       ),
       body: Column(
         children: [
@@ -104,7 +110,7 @@ class _ManageProductsScreenState extends State<ManageProductsScreen> {
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                     itemCount: products.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final item = products[index];
                       return Container(
@@ -127,10 +133,9 @@ class _ManageProductsScreenState extends State<ManageProductsScreen> {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
-                                  child: Image.asset(
-                                    item.image,
+                                  child: AppImage(
+                                    imagePath: item.image,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.fastfood, color: Colors.grey),
                                   ),
                                 ),
                               ),
@@ -141,13 +146,37 @@ class _ManageProductsScreenState extends State<ManageProductsScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      item.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.textWhite,
-                                        fontSize: 15,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            item.name,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.textWhite,
+                                              fontSize: 15,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (item.isSpecial)
+                                          Container(
+                                            margin: const EdgeInsets.only(left: 6),
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.goldAccent,
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: const Text(
+                                              'SPECIAL',
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
@@ -193,12 +222,17 @@ class _ManageProductsScreenState extends State<ManageProductsScreen> {
                               IconButton(
                                 icon: const Icon(Icons.edit_rounded, color: AppTheme.goldAccent, size: 20),
                                 tooltip: 'Edit Product',
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => AddEditProductScreen(product: item),
-                                  ),
-                                ),
+                                onPressed: () async {
+                                  final res = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AddEditProductScreen(product: item),
+                                    ),
+                                  );
+                                  if (res == true && context.mounted) {
+                                    context.read<ProductProvider>().loadProducts();
+                                  }
+                                },
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),

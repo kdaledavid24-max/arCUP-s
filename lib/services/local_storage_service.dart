@@ -272,8 +272,12 @@ class LocalStorageService {
     _memoryProducts.clear();
     _memoryProducts.addAll(products);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyProducts, jsonEncode(products.map((p) => p.toJson()).toList()));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyProducts, jsonEncode(products.map((p) => p.toJson()).toList()));
+    } catch (_) {
+      // Kept safely in memory if browser localStorage quota is exceeded
+    }
   }
 
   Future<void> deleteProduct(String productId) async {
@@ -284,8 +288,12 @@ class LocalStorageService {
     _memoryProducts.clear();
     _memoryProducts.addAll(products);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyProducts, jsonEncode(products.map((p) => p.toJson()).toList()));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyProducts, jsonEncode(products.map((p) => p.toJson()).toList()));
+    } catch (_) {
+      // Kept safely in memory if browser localStorage quota is exceeded
+    }
   }
 
   // ================= ORDER OPERATIONS =================

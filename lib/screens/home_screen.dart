@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Image.asset(
                   'assets/images/logo.png',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
+                  errorBuilder: (_, _, _) => const Icon(
                     Icons.restaurant_rounded,
                     color: AppTheme.goldAccent,
                     size: 18,

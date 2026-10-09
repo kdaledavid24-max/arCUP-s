@@ -7,6 +7,7 @@ import '../models/product.dart';
 class ProductData {
   static const List<String> categories = [
     'All',
+    'Special Day Specials',
     'Coffee & Espresso',
     'Frappe Series',
     'Salad',
@@ -26,6 +27,22 @@ class ProductData {
       price: 160.00,
       image: 'assets/images/drinks/biscoff_latte.jpg',
       available: true,
+    ),
+
+    // ------------------------------------------------------------------------
+    // SPECIAL DAY SPECIALS & PROMOS
+    // ------------------------------------------------------------------------
+    const Product(
+      id: 'special_001',
+      name: 'Strawberry Velvet Frappe (Special Day Edition)',
+      category: 'Special Day Specials',
+      description:
+          'Special Day Celebration exclusive! Fresh strawberry blend crowned with rich velvet whipped cream and premium chocolate drizzle.',
+      price: 195.00,
+      image: 'assets/images/frappe/strawberry_frappe.jpg',
+      available: true,
+      isSpecial: true,
+      specialNote: 'Celebration Special of the Day',
     ),
     const Product(
       id: 'coffee_002',

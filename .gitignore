@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android specific ignores
+**/android/local.properties
+**/android/.gradle/
+**/android/**/build/
+*.jks
+*.keystore
+key.properties

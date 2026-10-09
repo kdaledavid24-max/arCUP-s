@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
+import 'app_image.dart';
 
 /// Full-featured interactive zoom viewer for product images.
 /// Supports pinch-to-zoom, mouse wheel, double tap, and on-screen +/- zoom controls.
@@ -159,16 +160,9 @@ class _ZoomableImageDialogState extends State<ZoomableImageDialog> {
                         ],
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: Image.asset(
-                        widget.product.image,
+                      child: AppImage(
+                        imagePath: widget.product.image,
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          height: 300,
-                          color: AppTheme.cardSurface,
-                          child: const Center(
-                            child: Icon(Icons.coffee_rounded, size: 64, color: AppTheme.textMuted),
-                          ),
-                        ),
                       ),
                     ),
                   ),

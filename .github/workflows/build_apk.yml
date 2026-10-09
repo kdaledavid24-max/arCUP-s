@@ -1,0 +1,77 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Android Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Analyze Project
+        run: flutter analyze
+
+      - name: Run Tests
+        run: flutter test
+
+      - name: Build Android Release APK
+        run: flutter build apk --release
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "arCUP's Android Release v1.0.0"
+          body: |
+            ## arCUP's - Food & Coffee Ordering Android App (v1.0.0) ☕🍔
+
+            Official Android release package (`app-release.apk`) for **arCUP's**.
+
+            ### 📱 How to Download & Install on Android:
+            1. Download `app-release.apk` from the **Assets** section below directly onto your Android device.
+            2. Open the downloaded `.apk` file from your device notifications or Downloads folder.
+            3. If prompted by Android, enable **Install unknown apps** for your browser/file manager.
+            4. Tap **Install** and open **arCUP's** to start exploring the menu and ordering!
+
+            ### ✨ Key Features:
+            - **Browse Categories**: Hot Drinks, Frappe, Ice Blends, Pasta, and Fresh Salads.
+            - **Detailed Product Modifiers**: Custom cup sizes, add-ons, sweetness levels, and notes.
+            - **Cart & Fast Checkout**: Dynamic total calculation, discount promotions, and order confirmation.
+            - **Order Tracking**: Real-time order status tracking with timestamps and order history.
+            - **Admin Dashboard**: Full product inventory management, category filtering, photo attachments, and sales analytics.
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

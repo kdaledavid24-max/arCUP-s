@@ -4,6 +4,7 @@ import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../theme/app_theme.dart';
 import '../screens/product_details_screen.dart';
+import 'app_image.dart';
 
 /// Product Card matching the luxury dark aesthetic with ice-blue image container and white + button.
 class ProductCard extends StatelessWidget {
@@ -38,7 +39,10 @@ class ProductCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.cardSurface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.cardBorder, width: 1.0),
+          border: Border.all(
+            color: product.isSpecial ? AppTheme.goldAccent.withValues(alpha: 0.6) : AppTheme.cardBorder,
+            width: product.isSpecial ? 1.4 : 1.0,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.35),
@@ -50,27 +54,58 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Image with Clean Presentation
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-              child: Container(
-                width: double.infinity,
-                color: AppTheme.imageBackdrop,
-                child: AspectRatio(
-                  aspectRatio: 1.12,
-                  child: Image.asset(
-                    product.image,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Center(
-                      child: Icon(
-                        Icons.coffee_rounded,
-                        size: 44,
-                        color: Colors.white.withValues(alpha: 0.8),
+            // Top Image with Clean Presentation and Special Badge
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                  child: Container(
+                    width: double.infinity,
+                    color: AppTheme.imageBackdrop,
+                    child: AspectRatio(
+                      aspectRatio: 1.12,
+                      child: AppImage(
+                        imagePath: product.image,
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
                 ),
-              ),
+                if (product.isSpecial)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppTheme.goldAccent,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.star_rounded, size: 12, color: Colors.black),
+                          SizedBox(width: 3),
+                          Text(
+                            'SPECIAL',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
 
             // Details Section

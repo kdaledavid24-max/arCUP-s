@@ -8,6 +8,8 @@ class Product {
   final String image;
   final bool available;
   final double rating;
+  final bool isSpecial;
+  final String? specialNote;
 
   const Product({
     required this.id,
@@ -18,6 +20,8 @@ class Product {
     required this.image,
     this.available = true,
     this.rating = 4.8,
+    this.isSpecial = false,
+    this.specialNote,
   });
 
   Map<String, dynamic> toJson() => {
@@ -29,6 +33,8 @@ class Product {
         'image': image,
         'available': available,
         'rating': rating,
+        'isSpecial': isSpecial,
+        'specialNote': specialNote,
       };
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -40,6 +46,8 @@ class Product {
         image: json['image']?.toString() ?? 'assets/images/drinks/americano.jpg',
         available: json['available'] as bool? ?? true,
         rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
+        isSpecial: json['isSpecial'] as bool? ?? false,
+        specialNote: json['specialNote']?.toString(),
       );
 
   Product copyWith({
@@ -51,6 +59,8 @@ class Product {
     String? image,
     bool? available,
     double? rating,
+    bool? isSpecial,
+    String? specialNote,
   }) {
     return Product(
       id: id ?? this.id,
@@ -61,6 +71,8 @@ class Product {
       image: image ?? this.image,
       available: available ?? this.available,
       rating: rating ?? this.rating,
+      isSpecial: isSpecial ?? this.isSpecial,
+      specialNote: specialNote ?? this.specialNote,
     );
   }
 }

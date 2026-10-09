@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../theme/app_theme.dart';
+import 'app_image.dart';
 
 /// Card component showing an individual item inside the cart with quantity controls.
 class CartItemCard extends StatelessWidget {
@@ -37,19 +38,9 @@ class CartItemCard extends StatelessWidget {
             child: SizedBox(
               width: 70,
               height: 70,
-              child: Image.asset(
-                item.product.image,
+              child: AppImage(
+                imagePath: item.product.image,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: AppTheme.creamBackground,
-                  child: const Center(
-                    child: Icon(
-                      Icons.local_cafe_rounded,
-                      color: AppTheme.primaryCoffee,
-                      size: 28,
-                    ),
-                  ),
-                ),
               ),
             ),
           ),
