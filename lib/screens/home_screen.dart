@@ -34,8 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final filtered = prodProv.filteredProducts;
     final totalItems = filtered.length;
     const itemsPerPage = 8;
-    final totalPages = (totalItems / itemsPerPage).ceil().clamp(1, 99);
-    final displayedProducts = filtered.skip((_currentPage - 1) * itemsPerPage).take(itemsPerPage).toList();
+    final totalPages = totalItems == 0 ? 1 : (totalItems / itemsPerPage).ceil().clamp(1, 99);
+    final currentPageClamped = _currentPage.clamp(1, totalPages);
+    final displayedProducts = filtered.skip((currentPageClamped - 1) * itemsPerPage).take(itemsPerPage).toList();
 
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
@@ -288,6 +289,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   final int crossAxisCount = width >= 1100 ? 4 : (width >= 720 ? 3 : 2);
                   final double childAspectRatio = crossAxisCount >= 3 ? 0.74 : 0.65;
 
+                  if (prodProv.isLoading && displayedProducts.isEmpty) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.6,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.goldAccent),
+                        ),
+                      ),
+                    );
+                  }
+
                   if (displayedProducts.isEmpty) {
                     return const Center(
                       child: Padding(
@@ -322,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(totalPages, (i) {
                   final pageNum = i + 1;
-                  final isCurrent = pageNum == _currentPage;
+                  final isCurrent = pageNum == currentPageClamped;
                   return GestureDetector(
                     onTap: () => setState(() => _currentPage = pageNum),
                     child: Container(

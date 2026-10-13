@@ -19,30 +19,79 @@ class ProductProvider extends ChangeNotifier {
   List<String> get categories => ProductData.categories;
 
   ProductProvider() {
+    // Synchronously seed in-memory list from cache or catalog to prevent empty-list flash on startup
+    if (_storage.cachedProducts.isNotEmpty) {
+      _products = _storage.cachedProducts.toList();
+    } else {
+      _products = ProductData.products.toList();
+    }
     loadProducts();
   }
 
+  /// Loads products from persistent storage and falls back safely to default catalog if empty.
   Future<void> loadProducts() async {
     _isLoading = true;
     notifyListeners();
     try {
-      _products = (await _storage.getProducts()).toList();
+      final loaded = await _storage.getProducts();
+      if (loaded.isNotEmpty) {
+        _products = loaded.toList();
+      } else if (_products.isEmpty) {
+        _products = ProductData.products.toList();
+      }
     } catch (_) {
-      _products = ProductData.products.toList();
+      if (_products.isEmpty) {
+        _products = ProductData.products.toList();
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    _isLoading = false;
-    notifyListeners();
   }
 
+  /// Filters products based on selected category and search query.
   List<Product> get filteredProducts {
     return _products.where((p) {
-      final matchesCat =
-          _selectedCategory == 'All' || p.category == _selectedCategory;
+      final matchesCat = isProductInCategory(p, _selectedCategory);
       final matchesSearch = _searchQuery.isEmpty ||
           p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           p.description.toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesCat && matchesSearch;
     }).toList();
+  }
+
+  /// Robust category comparison accommodating case, whitespace, aliases, and special flags.
+  static bool isProductInCategory(Product product, String category) {
+    final cat = category.trim().toLowerCase();
+    if (cat == 'all' || cat.isEmpty) return true;
+
+    final pCat = product.category.trim().toLowerCase();
+
+    // Special Day Specials category matches products with special flag or special in category name
+    if (cat == 'special day specials' || cat == 'special day' || cat == 'specials') {
+      return product.isSpecial || pCat.contains('special');
+    }
+
+    // Direct case-insensitive match
+    if (pCat == cat) return true;
+
+    // Frappe and Frappe Series aliases
+    final isFrappeP = pCat == 'frappe' || pCat == 'frappe series';
+    final isFrappeCat = cat == 'frappe' || cat == 'frappe series';
+    if (isFrappeP && isFrappeCat) return true;
+
+    // Coffee & Espresso aliases
+    final isCoffeeP = pCat.contains('coffee') || pCat.contains('espresso');
+    final isCoffeeCat = cat.contains('coffee') || cat.contains('espresso');
+    if (isCoffeeP && isCoffeeCat) return true;
+
+    // Salad
+    if (cat.contains('salad') && pCat.contains('salad')) return true;
+
+    // Pasta
+    if (cat.contains('pasta') && pCat.contains('pasta')) return true;
+
+    return false;
   }
 
   List<Product> get popularProducts {

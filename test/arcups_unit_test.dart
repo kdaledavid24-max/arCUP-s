@@ -9,19 +9,19 @@ void main() {
       expect(ProductData.products.isNotEmpty, true);
 
       for (final p in ProductData.products) {
-        if (p.category == 'Coffee & Espresso' || p.category == 'Frappe Series') {
+        if (p.category == 'Coffee & Espresso' || p.category == 'Frappe' || p.category == 'Frappe Series') {
           // Drinks range ₱100 - ₱200
           expect(
             p.price >= 100.0 && p.price <= 200.0,
             true,
-            reason: '${p.name} drink price ₱${p.price} should be between ₱100 and ₱200',
+            reason: '${p.name} drink price ₱${p.price} should be between ₱100 and 200',
           );
         } else if (p.category == 'Salad' || p.category == 'Pasta') {
           // Salad and Pasta range ₱200 - ₱300
           expect(
             p.price >= 200.0 && p.price <= 300.0,
             true,
-            reason: '${p.name} food price ₱${p.price} should be between ₱200 and ₱300',
+            reason: '${p.name} food price ₱${p.price} should be between ₱200 and 300',
           );
         }
       }
@@ -30,8 +30,9 @@ void main() {
     test('All categories match requirements', () {
       expect(ProductData.categories, containsAll([
         'All',
+        'Special Day Specials',
         'Coffee & Espresso',
-        'Frappe Series',
+        'Frappe',
         'Salad',
         'Pasta',
       ]));

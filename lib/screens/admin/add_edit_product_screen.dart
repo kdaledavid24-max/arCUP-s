@@ -44,8 +44,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _priceController = TextEditingController(
       text: widget.product != null ? widget.product!.price.toStringAsFixed(2) : '',
     );
-    _specialNoteController = TextEditingController(text: widget.product?.specialNote ?? '');
     _selectedCategory = widget.product?.category ?? 'Coffee & Espresso';
+    if (_selectedCategory == 'Frappe Series') {
+      _selectedCategory = 'Frappe';
+    }
     // When creating a new product, start with empty image so only placeholder icon is shown
     _imagePath = widget.product?.image ?? '';
     _available = widget.product?.available ?? true;

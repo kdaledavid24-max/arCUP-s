@@ -15,6 +15,9 @@ class OrderProvider extends ChangeNotifier {
   String get selectedStatusFilter => _selectedStatusFilter;
 
   OrderProvider() {
+    if (_storage.cachedOrders.isNotEmpty) {
+      _orders = _storage.cachedOrders.toList();
+    }
     loadOrders();
   }
 
@@ -24,10 +27,11 @@ class OrderProvider extends ChangeNotifier {
     try {
       _orders = (await _storage.getOrders()).toList();
     } catch (_) {
-      _orders = [];
+      // Keep existing memory orders if load fails
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    _isLoading = false;
-    notifyListeners();
   }
 
   void setStatusFilter(String filter) {

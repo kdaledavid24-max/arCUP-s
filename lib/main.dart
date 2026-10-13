@@ -15,8 +15,11 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 
-void main() {
+import 'services/local_storage_service.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await LocalStorageService.instance.ensureReady();
   runApp(const FoodOrderingApp());
 }
 

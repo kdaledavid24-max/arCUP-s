@@ -156,8 +156,15 @@ class _MenuScreenState extends State<MenuScreen> {
 
           // Product Grid or Empty State
           Expanded(
-            child: filtered.isEmpty
-                ? Center(
+            child: prodProv.isLoading && filtered.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.6,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.goldAccent),
+                    ),
+                  )
+                : filtered.isEmpty
+                    ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Column(

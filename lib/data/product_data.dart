@@ -9,7 +9,7 @@ class ProductData {
     'All',
     'Special Day Specials',
     'Coffee & Espresso',
-    'Frappe Series',
+    'Frappe',
     'Salad',
     'Pasta',
   ];
@@ -101,7 +101,7 @@ class ProductData {
     const Product(
       id: 'frappe_001',
       name: 'Biscoff Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Blended ice beverage featuring spiced Lotus cookie butter, creamy milk, and decadent whipped cream.',
       price: 180.00,
@@ -111,7 +111,7 @@ class ProductData {
     const Product(
       id: 'frappe_002',
       name: 'Blueberry Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Refreshing ice-blended smoothie bursting with real wild blueberries and sweet cream.',
       price: 170.00,
@@ -121,7 +121,7 @@ class ProductData {
     const Product(
       id: 'frappe_003',
       name: 'Caramel Frappuccino',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Coffee blended with buttery caramel syrup, ice, and milk, garnished with whipped cream and caramel drizzle.',
       price: 175.00,
@@ -131,7 +131,7 @@ class ProductData {
     const Product(
       id: 'frappe_004',
       name: 'Cookies and Cream Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'A crowd favorite crushed chocolate sandwich cookies blended with vanilla bean milk base.',
       price: 170.00,
@@ -141,7 +141,7 @@ class ProductData {
     const Product(
       id: 'frappe_005',
       name: 'Java Chips Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Espresso, chocolate chips, and mocha sauce blended with ice for a crunchy, chocolatey coffee experience.',
       price: 185.00,
@@ -151,7 +151,7 @@ class ProductData {
     const Product(
       id: 'frappe_006',
       name: 'Matcha Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Vibrant sweetened Uji matcha powder blended with fresh milk, crushed ice, and topped with light cream.',
       price: 175.00,
@@ -161,7 +161,7 @@ class ProductData {
     const Product(
       id: 'frappe_007',
       name: 'Strawberry Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Delightful blend of real strawberry puree and sweet vanilla cream swirled over cold ice.',
       price: 170.00,
@@ -171,7 +171,7 @@ class ProductData {
     const Product(
       id: 'frappe_008',
       name: 'Vanilla Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Pure creamy indulgence made with rich Madagascar vanilla syrup, milk, and smooth crushed ice.',
       price: 160.00,
@@ -181,7 +181,7 @@ class ProductData {
     const Product(
       id: 'frappe_009',
       name: 'Coffee Jelly Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Handcrafted chilled coffee frappe served over chewy, aromatic homemade coffee gelatin cubes.',
       price: 165.00,
@@ -191,7 +191,7 @@ class ProductData {
     const Product(
       id: 'frappe_010',
       name: 'Ube Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Signature Filipino purple yam blended into a vibrant, silky purple frappe with coconut cream hints.',
       price: 170.00,
@@ -201,7 +201,7 @@ class ProductData {
     const Product(
       id: 'frappe_011',
       name: 'White Chocolate Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Velvety melted white chocolate confection blended with fresh milk, ice, and cloud-like topping.',
       price: 175.00,
@@ -211,7 +211,7 @@ class ProductData {
     const Product(
       id: 'frappe_012',
       name: 'Nutella Frappe',
-      category: 'Frappe Series',
+      category: 'Frappe',
       description:
           'Generous swirls of hazelnut cocoa Nutella blended to frosty perfection and topped with roasted cocoa dust.',
       price: 190.00,

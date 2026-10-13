@@ -37,18 +37,24 @@ class Product {
         'specialNote': specialNote,
       };
 
-  factory Product.fromJson(Map<String, dynamic> json) => Product(
-        id: json['id']?.toString() ?? '',
-        name: json['name']?.toString() ?? '',
-        category: json['category']?.toString() ?? 'Coffee & Espresso',
-        description: json['description']?.toString() ?? '',
-        price: (json['price'] as num?)?.toDouble() ?? 0.0,
-        image: json['image']?.toString() ?? 'assets/images/drinks/americano.jpg',
-        available: json['available'] as bool? ?? true,
-        rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
-        isSpecial: json['isSpecial'] as bool? ?? false,
-        specialNote: json['specialNote']?.toString(),
-      );
+  factory Product.fromJson(Map<String, dynamic> json) {
+    String category = json['category']?.toString().trim() ?? 'Coffee & Espresso';
+    if (category.toLowerCase() == 'frappe series') {
+      category = 'Frappe';
+    }
+    return Product(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      category: category.isEmpty ? 'Coffee & Espresso' : category,
+      description: json['description']?.toString() ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      image: json['image']?.toString() ?? 'assets/images/drinks/americano.jpg',
+      available: json['available'] as bool? ?? true,
+      rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
+      isSpecial: json['isSpecial'] as bool? ?? false,
+      specialNote: json['specialNote']?.toString(),
+    );
+  }
 
   Product copyWith({
     String? id,

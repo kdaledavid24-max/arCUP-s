@@ -87,9 +87,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     });
   }
 
-  List<Product> get _categoryProducts => ProductData.products
-      .where((p) => p.category == _currentProduct.category)
-      .toList();
+  List<Product> get _categoryProducts {
+    final curCat = _currentProduct.category.trim().toLowerCase();
+    return ProductData.products.where((p) {
+      final pCat = p.category.trim().toLowerCase();
+      if (pCat == curCat) return true;
+      if ((pCat == 'frappe' || pCat == 'frappe series') && (curCat == 'frappe' || curCat == 'frappe series')) return true;
+      return false;
+    }).toList();
+  }
 
   int get _categoryIndex {
     final list = _categoryProducts;

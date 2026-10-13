@@ -21,21 +21,34 @@ class LocalStorageService {
 
   Future<void>? _initFuture;
 
-  // In-memory fallback if SharedPreferences is initializing or in web preview
+  // In-memory fallback and cache for fast access
   final List<UserModel> _memoryUsers = [];
   final List<Product> _memoryProducts = [];
   final List<OrderModel> _memoryOrders = [];
 
+  List<Product> get cachedProducts => List.unmodifiable(_memoryProducts);
+  List<UserModel> get cachedUsers => List.unmodifiable(_memoryUsers);
+  List<OrderModel> get cachedOrders => List.unmodifiable(_memoryOrders);
+
   Future<void> ensureReady() {
     return _initFuture ??= _seedIfNeeded();
+  }
+
+  void resetForTesting() {
+    _initFuture = null;
+    _memoryUsers.clear();
+    _memoryProducts.clear();
+    _memoryOrders.clear();
   }
 
   Future<void> _seedIfNeeded() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final isSeeded = prefs.getBool(_keySeeded) ?? false;
+      final rawProducts = prefs.getString(_keyProducts);
 
-      if (!isSeeded) {
+      // If never seeded or product storage was lost/empty, perform seed
+      if (!isSeeded || rawProducts == null || rawProducts.trim().isEmpty || rawProducts == '[]') {
         // 1. Seed default users
         final defaultUsers = [
           UserModel(
@@ -135,14 +148,42 @@ class LocalStorageService {
         await prefs.setString(_keyOrders, jsonEncode(demoOrders.map((o) => o.toJson()).toList()));
         await prefs.setBool(_keySeeded, true);
 
+        _memoryUsers.clear();
         _memoryUsers.addAll(defaultUsers);
+
+        _memoryProducts.clear();
         _memoryProducts.addAll(initialProducts);
+
+        _memoryOrders.clear();
         _memoryOrders.addAll(demoOrders);
       } else {
-        // Load into memory
-        await getUsers();
-        await getProducts();
-        await getOrders();
+        // Load into memory directly from SharedPreferences without recursive ensureReady() calls
+        final rawUsers = prefs.getString(_keyUsers);
+        if (rawUsers != null && rawUsers.isNotEmpty) {
+          final list = jsonDecode(rawUsers) as List<dynamic>;
+          _memoryUsers.clear();
+          _memoryUsers.addAll(list.map((m) => UserModel.fromJson(Map<String, dynamic>.from(m as Map))));
+        }
+
+        if (rawProducts.isNotEmpty) {
+          final list = jsonDecode(rawProducts) as List<dynamic>;
+          final parsed = list.map((m) => Product.fromJson(Map<String, dynamic>.from(m as Map))).toList();
+          if (parsed.isNotEmpty) {
+            _memoryProducts.clear();
+            _memoryProducts.addAll(parsed);
+          }
+        }
+        if (_memoryProducts.isEmpty) {
+          _memoryProducts.addAll(ProductData.products);
+          await prefs.setString(_keyProducts, jsonEncode(_memoryProducts.map((p) => p.toJson()).toList()));
+        }
+
+        final rawOrders = prefs.getString(_keyOrders);
+        if (rawOrders != null && rawOrders.isNotEmpty) {
+          final list = jsonDecode(rawOrders) as List<dynamic>;
+          _memoryOrders.clear();
+          _memoryOrders.addAll(list.map((m) => OrderModel.fromJson(Map<String, dynamic>.from(m as Map))));
+        }
       }
     } catch (e) {
       // Fallback in-memory
@@ -154,6 +195,7 @@ class LocalStorageService {
 
   // ================= USER OPERATIONS =================
   Future<List<UserModel>> getUsers() async {
+    await ensureReady();
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_keyUsers);
@@ -240,16 +282,22 @@ class LocalStorageService {
   }
 
   // ================= PRODUCT OPERATIONS =================
-  Future<List<Product>> getProducts() async {
+  Future<List<Product>> getProducts({bool forceReload = false}) async {
     await ensureReady();
+    if (_memoryProducts.isNotEmpty && !forceReload) {
+      return List.unmodifiable(_memoryProducts);
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_keyProducts);
       if (raw != null && raw.isNotEmpty) {
         final list = jsonDecode(raw) as List<dynamic>;
-        _memoryProducts.clear();
-        _memoryProducts.addAll(list.map((m) => Product.fromJson(Map<String, dynamic>.from(m as Map))));
-        return List.unmodifiable(_memoryProducts);
+        final parsed = list.map((m) => Product.fromJson(Map<String, dynamic>.from(m as Map))).toList();
+        if (parsed.isNotEmpty) {
+          _memoryProducts.clear();
+          _memoryProducts.addAll(parsed);
+          return List.unmodifiable(_memoryProducts);
+        }
       }
     } catch (_) {}
     if (_memoryProducts.isEmpty) {
@@ -260,21 +308,17 @@ class LocalStorageService {
 
   Future<void> saveProduct(Product product) async {
     await ensureReady();
-    final products = (await getProducts()).toList();
-    final index = products.indexWhere((p) => p.id == product.id);
+    final index = _memoryProducts.indexWhere((p) => p.id == product.id);
 
     if (index >= 0) {
-      products[index] = product;
+      _memoryProducts[index] = product;
     } else {
-      products.add(product);
+      _memoryProducts.add(product);
     }
-
-    _memoryProducts.clear();
-    _memoryProducts.addAll(products);
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyProducts, jsonEncode(products.map((p) => p.toJson()).toList()));
+      await prefs.setString(_keyProducts, jsonEncode(_memoryProducts.map((p) => p.toJson()).toList()));
     } catch (_) {
       // Kept safely in memory if browser localStorage quota is exceeded
     }
@@ -282,23 +326,22 @@ class LocalStorageService {
 
   Future<void> deleteProduct(String productId) async {
     await ensureReady();
-    final products = (await getProducts()).toList();
-    products.removeWhere((p) => p.id == productId);
-
-    _memoryProducts.clear();
-    _memoryProducts.addAll(products);
+    _memoryProducts.removeWhere((p) => p.id == productId);
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyProducts, jsonEncode(products.map((p) => p.toJson()).toList()));
+      await prefs.setString(_keyProducts, jsonEncode(_memoryProducts.map((p) => p.toJson()).toList()));
     } catch (_) {
       // Kept safely in memory if browser localStorage quota is exceeded
     }
   }
 
   // ================= ORDER OPERATIONS =================
-  Future<List<OrderModel>> getOrders() async {
+  Future<List<OrderModel>> getOrders({bool forceReload = false}) async {
     await ensureReady();
+    if (_memoryOrders.isNotEmpty && !forceReload) {
+      return List.unmodifiable(_memoryOrders);
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_keyOrders);
