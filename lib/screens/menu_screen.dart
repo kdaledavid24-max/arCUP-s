@@ -17,6 +17,7 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _categoryScrollController = ScrollController();
 
   @override
   void initState() {
@@ -31,7 +32,19 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _categoryScrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToCategory(int index) {
+    if (_categoryScrollController.hasClients) {
+      final target = (index * 110.0) - 40.0;
+      _categoryScrollController.animateTo(
+        target.clamp(0.0, _categoryScrollController.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   @override
@@ -42,6 +55,7 @@ class _MenuScreenState extends State<MenuScreen> {
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: AppTheme.darkBackground,
         title: const Text(
           'Menu & Catalog',
@@ -98,22 +112,27 @@ class _MenuScreenState extends State<MenuScreen> {
           SizedBox(
             height: 40,
             child: ListView.builder(
+              controller: _categoryScrollController,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: prodProv.categories.length,
               itemBuilder: (context, index) {
                 final category = prodProv.categories[index];
+                final isSelected = prodProv.selectedCategory.toLowerCase() == category.toLowerCase();
                 return CategoryButton(
                   categoryName: category,
-                  isSelected: prodProv.selectedCategory.toLowerCase() == category.toLowerCase(),
-                  onTap: () => prodProv.setCategory(category),
+                  isSelected: isSelected,
+                  onTap: () {
+                    prodProv.setCategory(category);
+                    _scrollToCategory(index);
+                  },
                 );
               },
             ),
           ),
           const SizedBox(height: 12),
 
-          // Filter Info
+          // Filter Info & Reset Button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
             child: Row(
@@ -149,6 +168,36 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   ],
                 ),
+                if (prodProv.selectedCategory != 'All')
+                  GestureDetector(
+                    onTap: () {
+                      prodProv.setCategory('All');
+                      _scrollToCategory(0);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.goldAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.goldAccent.withValues(alpha: 0.4)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Show All Menu',
+                            style: TextStyle(
+                              color: AppTheme.goldAccent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(Icons.close_rounded, size: 13, color: AppTheme.goldAccent),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -165,66 +214,67 @@ class _MenuScreenState extends State<MenuScreen> {
                   )
                 : filtered.isEmpty
                     ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.search_off_rounded,
-                            size: 64,
-                            color: AppTheme.textMuted,
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.search_off_rounded,
+                                size: 64,
+                                color: AppTheme.textMuted,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'No products found',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textWhite,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Try searching for another drink or food item.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                              ),
+                              const SizedBox(height: 20),
+                              OutlinedButton(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  prodProv.setSearchQuery('');
+                                  prodProv.setCategory('All');
+                                  _scrollToCategory(0);
+                                },
+                                child: const Text('Reset Filters'),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No products found',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textWhite,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Try searching for another drink or food item.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-                          ),
-                          const SizedBox(height: 20),
-                          OutlinedButton(
-                            onPressed: () {
-                              _searchController.clear();
-                              prodProv.setSearchQuery('');
-                              prodProv.setCategory('All');
-                            },
-                            child: const Text('Reset Filters'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      final int crossAxisCount = width >= 900 ? 4 : (width >= 600 ? 3 : 2);
-                      const double childAspectRatio = 0.74;
-
-                      return GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        physics: const BouncingScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          childAspectRatio: childAspectRatio,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
                         ),
-                        itemCount: filtered.length,
-                        itemBuilder: (context, index) {
-                          return ProductCard(product: filtered[index]);
+                      )
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          final width = constraints.maxWidth;
+                          final int crossAxisCount = width >= 900 ? 4 : (width >= 600 ? 3 : 2);
+                          final double childAspectRatio = crossAxisCount >= 3 ? 0.74 : 0.66;
+
+                          return GridView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                            physics: const BouncingScrollPhysics(),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              childAspectRatio: childAspectRatio,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                            ),
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              return ProductCard(product: filtered[index]);
+                            },
+                          );
                         },
-                      );
-                    },
-                  ),
+                      ),
           ),
         ],
       ),

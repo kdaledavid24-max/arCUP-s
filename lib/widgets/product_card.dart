@@ -121,11 +121,11 @@ class ProductCard extends StatelessWidget {
                       children: [
                         Text(
                           product.name,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontFamily: 'serif',
-                            fontSize: 15,
+                            fontSize: 14.5,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.textWhite,
                             letterSpacing: 0.2,

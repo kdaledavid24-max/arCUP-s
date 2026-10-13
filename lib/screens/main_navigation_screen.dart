@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/product_provider.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'menu_screen.dart';
@@ -28,6 +29,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void _onTabTapped(int index) {
+    if (index == 1 && _currentIndex != 1) {
+      // Switching to Menu tab shows the complete menu catalog by default
+      context.read<ProductProvider>().setCategory('All');
+      context.read<ProductProvider>().setSearchQuery('');
+    }
     setState(() {
       _currentIndex = index;
     });

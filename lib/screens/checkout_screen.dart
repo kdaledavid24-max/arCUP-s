@@ -322,7 +322,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 const SizedBox(width: 10),
                                 const Expanded(
                                   child: Text(
-                                    'Text me updates and offers from Am I Coffee?. Standard message rates apply, and you can opt out any time.',
+                                    'Text me updates and offers from arCUP\'s. Standard message rates apply, and you can opt out any time.',
                                     style: TextStyle(
                                       color: AppTheme.textMuted,
                                       fontSize: 11.5,
