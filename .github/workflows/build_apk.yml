@@ -53,10 +53,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: "arCUP's Android Release v1.0.0"
+          tag_name: v1.0.1
+          name: "arCUP's Android Release v1.0.1"
           body: |
-            ## arCUP's - Food & Coffee Ordering Android App (v1.0.0) ☕🍔
+            ## arCUP's - Food & Coffee Ordering Android App (v1.0.1) ☕🍔
 
             Official Android release package (`app-release.apk`) for **arCUP's**.
 
